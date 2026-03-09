@@ -165,6 +165,10 @@ void InitalizeSDNA(SDNA *sdna) {
     }
 
     data_pointer++;
+
+    /* --------------------------------- Members -------------------------------- */
+
+    /* Initalize member name array */
     if (*data_pointer == CharToInt32('N', 'A', 'M', 'E')) {
         data_pointer++;
         sdna->members_num = *data_pointer;
@@ -172,6 +176,7 @@ void InitalizeSDNA(SDNA *sdna) {
 
         data_pointer++;
         sdna->members = new const char*[sdna->members_num];
+        // Zero new array
         memset(sdna->members, 0, sdna->members_num * sizeof(const char*));
     } else {
         throw std::runtime_error("Error reading SDNA NAME header");
@@ -192,7 +197,9 @@ void InitalizeSDNA(SDNA *sdna) {
 
     member_pointer = PadTo4(member_pointer);
 
-    /* Find type names */
+    /* ---------------------------------- Types --------------------------------- */
+
+    /* Initalize type name arrays */
     data_pointer = (int*)member_pointer;
     if (*data_pointer == CharToInt32('T', 'Y', 'P', 'E')) {
         data_pointer++;
@@ -201,9 +208,23 @@ void InitalizeSDNA(SDNA *sdna) {
 
         data_pointer++;
         sdna->types = new const char*[sdna->types_num];
+        // Zero new array
         memset(sdna->types, 0, sdna->types_num * sizeof(const char*));
     } else {
         throw std::runtime_error("Error reading SDNA TYPE header");
+    }
+
+    /* Find type names */
+    const char* type_pointer = (char*)data_pointer;
+    for (int type_index = 0; type_index < sdna->types_num; type_index++) {
+        sdna->types[type_index] = type_pointer;
+        
+        /* Keep going until you find null terminator */
+        while (*type_pointer) {
+            type_pointer++;  
+        }
+        /* Go to next type name */
+        type_pointer++;
     }
 
 
@@ -308,4 +329,7 @@ int main() {
     }
 
     std::cout << "\nNumber of types: " << blendFile.file_SDNA->types_num << "\nTypes: \n";
+        for (int i = 0; i < blendFile.file_SDNA->types_num; i++) {
+        std::cout << blendFile.file_SDNA->types[i] << "\n";
+    }
 }
