@@ -5,7 +5,11 @@
 #include <exception>
 
 
-// Aka BHead or LargeBHead8 in blender source
+/* -------------------------------------------------------------------------- */
+/*                                BLOCK HEADER                                */
+/* -------------------------------------------------------------------------- */
+
+/* Aka BHead or LargeBHead8 in blender source */
 struct BlockHeader {
     int32_t code;
     int32_t SDNAnr;
@@ -14,7 +18,7 @@ struct BlockHeader {
     int64_t nr;
 };
 
-// Aka BHeadN
+/* Aka BHeadN */
 struct BlockHeaderNode {
     BlockHeaderNode *next, *perv;
     uint64_t file_offset;
@@ -38,6 +42,74 @@ struct BlockHeaderList {
     }
 };
 
+/* -------------------------------------------------------------------------- */
+/*                                    SDNA                                    */
+/* -------------------------------------------------------------------------- */
+
+/* 
+ * Types are null termianted c strings in the style of C like "vertex[3]\0" 
+ */
+
+struct SDNA_StructMember {
+    short type_index;
+    short member_index;
+};
+
+struct SDNA_Struct {
+    short type_index;
+    short members_num;
+    SDNA_StructMember members[];
+};
+
+/* Structure DNA largely mirrors SDNA def from blender source */
+struct SDNA {
+    /* Encoded data from before parsing */
+    const char *data;
+    int data_size;
+    bool data_alloc;
+
+    /* ---------------------------------- TYPES --------------------------------- */
+
+    int types_num;
+    /* Type names */
+    const char **types;
+    short *types_size;
+    int *types_alignment;
+
+    /* ---------------------------------- TYPES --------------------------------- */
+
+    /* --------------------------------- STRUCTS -------------------------------- */
+
+    int structs_num;
+    SDNA_Struct **structs;
+
+    /* --------------------------------- STRUCTS -------------------------------- */
+
+    /* ----------------------------- STRUCT MEMBERS ----------------------------- */
+
+    /* Total number of struct members */
+    int members_num;
+    /* Unused for the moment */
+    int members_num_alloc;
+
+    /* Struct member names */
+    const char **members;
+
+    /* 
+     * parallel array to members, if a member is an array like float[2] 
+     * this stores the length i.e. 2 otherwise it stores a 1 for any other member 
+     */
+    short *members_array_num;
+
+    /* ----------------------------- STRUCT MEMBERS ----------------------------- */
+
+    /* 
+     * TODO: here goes a map that maps between type names to struct indices
+     * see SDNA Ghash array in blender source
+     */ 
+
+};
+
 struct BlendFile {
     char* header;
     int header_length;
@@ -45,7 +117,24 @@ struct BlendFile {
     int blender_version;
 
     BlockHeaderList block_header_list;
+
+    SDNA *file_SDNA;
 };
+
+// const char* ReadBlock()
+
+SDNA *ReadSDNA(std::ifstream& file, uint64_t data_offset, uint64_t data_length) {
+    SDNA *sdna = new SDNA();
+
+    sdna->data_size = data_length;
+    char* data = new char[data_length];
+    file.seekg(data_offset);
+    file.read(data, data_length);
+
+    sdna->data = data;
+
+    return sdna;
+}
 
 
 
@@ -55,7 +144,7 @@ BlendFile ReadBlendFile(const char* path) {
     std::ifstream file(path, std::ios::in | std::ios::binary);
 
     /* ------------------------------- READ HEADER ------------------------------ */
-    // hardcoded because this isn't really expected to change
+    /* hardcoded because this isn't really expected to change */
     int header_length = 17;
     char* header = new char[header_length + 1];
     header[header_length + 1] = '\0';
@@ -84,8 +173,8 @@ BlendFile ReadBlendFile(const char* path) {
     // based on get_bhead()
     while(true) {
         BlockHeader block_header; 
-        int file_offset = file.tellg();
         file.read((char*)&block_header, sizeof(BlockHeader));
+        int file_offset = file.tellg();
         if (file.eof()) {
             break;
         }
@@ -100,6 +189,10 @@ BlendFile ReadBlendFile(const char* path) {
 
         file.seekg(block_header.len, std::ios::seekdir::_S_cur);
     }
+
+    file.clear();
+
+    result.file_SDNA = ReadSDNA(file, result.block_header_list.last->perv->file_offset, result.block_header_list.last->perv->block_header.len);
 
     return result;
 }
@@ -134,4 +227,6 @@ int main() {
 
         node = node->next;
     }
+
+    std::cout.write(blendFile.file_SDNA->data, blendFile.file_SDNA->data_size);
 }
