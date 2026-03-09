@@ -14,14 +14,37 @@ struct BlockHeader {
     int64_t nr;
 };
 
+// Aka BHeadN
+struct BlockHeaderNode {
+    BlockHeaderNode *next, *perv;
+    uint64_t file_offset;
+    bool has_data;
+    BlockHeader block_header;
+};
+
+struct BlockHeaderList {
+    BlockHeaderNode* first = nullptr;
+    BlockHeaderNode* last = nullptr;
+
+    void add(BlockHeaderNode* header) {
+        if (first) {
+            header->perv = last;
+            last->next = header;
+            last = header;
+        } else {
+            first = header;
+            last = header;
+        }
+    }
+};
+
 struct BlendFile {
     char* header;
     int header_length;
     int format_version;
     int blender_version;
 
-    BlockHeader test_header;
-    BlockHeader test_header2;
+    BlockHeaderList block_header_list;
 };
 
 
@@ -56,18 +79,27 @@ BlendFile ReadBlendFile(const char* path) {
     result.blender_version = blender_version;
 
     /* ---------------------------- READ BLOCK HEADER --------------------------- */
-    BlockHeader block_header;
 
-    file.read((char*)&block_header, sizeof(BlockHeader));
-    result.test_header = block_header;
 
-    // advance to next block
-    file.seekg(block_header.len, std::ios::seekdir::_S_cur);
+    // based on get_bhead()
+    while(true) {
+        BlockHeader block_header; 
+        int file_offset = file.tellg();
+        file.read((char*)&block_header, sizeof(BlockHeader));
+        if (file.eof()) {
+            break;
+        }
 
-    BlockHeader block_header2;
-    file.read((char*)&block_header2, sizeof(BlockHeader));
-    result.test_header2 = block_header2;
+        BlockHeaderNode* block_header_node = new BlockHeaderNode();
+        block_header_node->next = nullptr;
+        block_header_node->perv = nullptr;
+        block_header_node->file_offset = file_offset;
+        block_header_node->block_header = block_header;
 
+        result.block_header_list.add(block_header_node);
+
+        file.seekg(block_header.len, std::ios::seekdir::_S_cur);
+    }
 
     return result;
 }
@@ -86,22 +118,24 @@ int main() {
     std::cout << "blender version: " << blendFile.blender_version << "\n";
 
     std::cout << "\nblock:\n";
+    BlockHeader& block_header = blendFile.block_header_list.first->block_header;
     char code[sizeof(int32_t) + 1];
     code[sizeof(int32_t)] = '\0';
-    Int32ToChar(code, blendFile.test_header.code);
+    Int32ToChar(code, block_header.code);
     std::cout << "code: " << code << "\n";
-    std::cout << "SDNA struct type: " << blendFile.test_header.SDNAnr << "\n";
-    std::cout << "old pointer: " << blendFile.test_header.old_pointer << "\n";
-    std::cout << "byte length: " << blendFile.test_header.len << "\n";
-    std::cout << "number of structs: " << blendFile.test_header.nr << "\n";
+    std::cout << "SDNA struct type: " << block_header.SDNAnr << "\n";
+    std::cout << "old pointer: " << block_header.old_pointer << "\n";
+    std::cout << "byte length: " << block_header.len << "\n";
+    std::cout << "number of structs: " << block_header.nr << "\n";
 
     std::cout << "\nblock:\n";
+    BlockHeader& block_header2 = blendFile.block_header_list.first->next->block_header;
     char code2[sizeof(int32_t) + 1];
     code[sizeof(int32_t)] = '\0';
-    Int32ToChar(code2, blendFile.test_header2.code);
+    Int32ToChar(code2, block_header2.code);
     std::cout << "code: " << code2 << "\n";
-    std::cout << "SDNA struct type: " << blendFile.test_header2.SDNAnr << "\n";
-    std::cout << "old pointer: " << blendFile.test_header2.old_pointer << "\n";
-    std::cout << "byte length: " << blendFile.test_header2.len << "\n";
-    std::cout << "number of structs: " << blendFile.test_header2.nr << "\n";
+    std::cout << "SDNA struct type: " << block_header2.SDNAnr << "\n";
+    std::cout << "old pointer: " << block_header2.old_pointer << "\n";
+    std::cout << "byte length: " << block_header2.len << "\n";
+    std::cout << "number of structs: " << block_header2.nr << "\n";
 }
