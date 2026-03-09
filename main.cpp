@@ -5,13 +5,25 @@
 #include <exception>
 
 
+// Aka BHead or LargeBHead8 in blender source
+struct BlockHeader {
+    int code;
+    int SDNAnr;
+    uint64_t old_pointer;
+    int64_t len;
+    int64_t nr;
+};
+
 struct BlendFile {
     char* header;
     int header_length;
-
     int format_version;
     int blender_version;
+
+    BlockHeader test_header;
 };
+
+
 
 BlendFile ReadBlendFile(const char* path) {
     BlendFile result;
@@ -42,8 +54,17 @@ BlendFile ReadBlendFile(const char* path) {
     result.format_version = format_version;
     result.blender_version = blender_version;
 
+    /* ---------------------------- READ BLOCK HEADER --------------------------- */
+    BlockHeader blockHeader;
+
+    file.read((char*)&blockHeader, sizeof(BlockHeader));
+    result.test_header = blockHeader;
 
     return result;
+}
+
+void Int32ToChar(char a[], int n) {
+    memcpy(a, &n, 4);
 }
 
 int main() {
@@ -51,7 +72,16 @@ int main() {
     BlendFile blendFile = ReadBlendFile("Cube.blend");
 
     std::cout << "header: " << blendFile.header << "\n";
-    std::cout << "header length: " << blendFile.header_length << "\n";
+    std::cout << "length: " << blendFile.header_length << "\n";
     std::cout << "format version: " << blendFile.format_version << "\n";
     std::cout << "blender version: " << blendFile.blender_version << "\n";
+    std::cout << "\n";
+    std::cout << "block:\n";
+    char code[4];
+    Int32ToChar(code, blendFile.test_header.code);
+    std::cout << "code: " << code << "\n";
+    std::cout << "SDNA struct type: " << blendFile.test_header.SDNAnr << "\n";
+    std::cout << "old pointer: " << blendFile.test_header.old_pointer << "\n";
+    std::cout << "byte length: " << blendFile.test_header.len << "\n";
+    std::cout << "number of structs: " << blendFile.test_header.nr << "\n";
 }
