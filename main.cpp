@@ -227,7 +227,46 @@ void InitalizeSDNA(SDNA *sdna) {
         type_pointer++;
     }
 
+    type_pointer = PadTo4(type_pointer);
 
+    /* --------------------------- Type Length Arrray --------------------------- */
+    /* Array is already in the data memory properly so no need to loop over this one */
+    data_pointer = (int*)type_pointer;
+    short* type_length_pointer;
+    if (*data_pointer == CharToInt32('T', 'L', 'E', 'N')) {
+        data_pointer++;
+        type_length_pointer = (short*)data_pointer;
+
+        sdna->types_size = type_length_pointer;
+        type_length_pointer += sdna->types_num;
+    } else {
+        throw std::runtime_error("Error reading SDNA TYPE LENGTH header");
+    }
+
+    /* prevent BUS error? honestly not sure why this is here */
+    if (sdna->types_num & 1) {
+        type_length_pointer++;
+    }
+
+    /* ------------------------------ Struct Array ------------------------------ */
+    data_pointer = (int*)type_length_pointer;
+    if (*data_pointer == CharToInt32('S', 'T', 'R', 'C')) {
+        data_pointer++;
+        sdna->structs_num = *data_pointer;
+        data_pointer++;
+
+        sdna->structs = new SDNA_Struct*[sdna->structs_num];
+        memset(sdna->structs, 0, sdna->structs_num * sizeof(SDNA_Struct));
+    } else {
+        throw std::runtime_error("Error reading SDNA STRCUT ARRAY header");
+    }
+
+    /* 
+     * Blender does a check to ensure the same struct index isn't used twice here 
+     * but I'm not going to bother at least for now
+     */
+
+    
 }
 
 
