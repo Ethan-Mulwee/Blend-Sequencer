@@ -3,6 +3,7 @@
 #include <cstring>
 #include <string>
 #include <exception>
+#include <cstdint>
 
 
 /* -------------------------------------------------------------------------- */
