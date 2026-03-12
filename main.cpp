@@ -431,7 +431,14 @@ int main() {
         for (int i = 0; i < blend_file.sdna->structs_num; i++) {
             SDNA_Struct* struct_pointer = blend_file.sdna->structs[i];
             std::cout << "Members num:" << struct_pointer->members_num << "\n";
+            std::cout << "Members: \n";
+            for (int member_index = 0; member_index < struct_pointer->members_num; member_index++) {
+                SDNA_StructMember member = struct_pointer->members[member_index];
+                std::cout << "(Type): " << blend_file.sdna->types[member.type_index] << ", ";
+                std::cout << "(Name): " << blend_file.sdna->members[member.member_index] << "\n";
+            }
             std::cout << "Type index:" << struct_pointer->type_index << "\n";
             std::cout << "Type name:" << blend_file.sdna->types[struct_pointer->type_index] << "\n";
+            std::cout << "\n\n";
     }
 }
