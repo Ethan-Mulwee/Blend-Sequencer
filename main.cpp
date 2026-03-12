@@ -410,6 +410,13 @@ BlendFile ReadBlendFile(const char* path) {
     return result;
 }
 
+/*
+ * TODO: some types don't have structs defining them however you do have access to the sizeof the type
+ * so you can make placeholder dummy types
+ *
+ * There are some types like mat4 that are actually important so maybe you should add a manual special case for them
+ */ 
+
 void ExtractSDNATypesToHeaderFile(const BlendFile& blend_file) {
     std::fstream file("sdna_structs.h", std::ios::out);
 
@@ -426,6 +433,7 @@ void ExtractSDNATypesToHeaderFile(const BlendFile& blend_file) {
         file << "struct " << blend_file.sdna->types[struct_pointer->type_index] << " { \n";
         for (int member_index = 0; member_index < struct_pointer->members_num; member_index++) {
             SDNA_StructMember member = struct_pointer->members[member_index];
+            
             file << "\t" << blend_file.sdna->types[member.type_index] << " ";
             file << "" << blend_file.sdna->members[member.member_index] << ";\n";
         }
@@ -438,7 +446,6 @@ void ExtractSDNATypesToHeaderFile(const BlendFile& blend_file) {
 int main() {
 
     BlendFile blend_file = ReadBlendFile("Cube.blend");
-    /* TODO: some types don't have any structs defining such as GPUBatchHandle them why is this? */
     ExtractSDNATypesToHeaderFile(blend_file);
 
     std::cout << "header: " << blend_file.header << "\n";
