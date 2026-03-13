@@ -442,6 +442,7 @@ void ExtractSDNATypesToHeaderFile(const BlendFile& blend_file) {
         }
     }
     file << "typedef unsigned short ushort;\n";
+    file << "typedef unsigned char uchar;\n";
 
     file << "\n";
 
@@ -463,7 +464,7 @@ void ExtractSDNATypesToHeaderFile(const BlendFile& blend_file) {
 int main() {
 
     BlendFile blend_file = ReadBlendFile("Cube.blend");
-    ExtractSDNATypesToHeaderFile(blend_file);
+    // ExtractSDNATypesToHeaderFile(blend_file);
 
     std::cout << "header: " << blend_file.header << "\n";
     std::cout << "length: " << blend_file.header_length << "\n";

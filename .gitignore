@@ -11,5 +11,4 @@ CTestTestfile.cmake
 _deps
 a.out
 output.txt
-sdna_structs.h
 blocks.txt
