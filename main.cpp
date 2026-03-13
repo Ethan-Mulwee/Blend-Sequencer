@@ -5,6 +5,7 @@
 #include <exception>
 #include <cstdint>
 
+/* See BlendFileReader.py */
 
 /* -------------------------------------------------------------------------- */
 /*                                BLOCK HEADER                                */
@@ -420,10 +421,22 @@ BlendFile ReadBlendFile(const char* path) {
 void ExtractSDNATypesToHeaderFile(const BlendFile& blend_file) {
     std::fstream file("sdna_structs.h", std::ios::out);
 
+    file << "#include <cstdint>\n\n";
+
     /* forward declaration to avoid ordering issues */
     for (int i = 0; i < blend_file.sdna->structs_num; i++) {
         SDNA_Struct* struct_pointer = blend_file.sdna->structs[i];
         file << "struct " << blend_file.sdna->types[struct_pointer->type_index] << ";\n";
+    }
+
+    file << "\n";
+
+    /* These members have size zero and are almost exclusively just named pointers */
+    for (int i = 0; i < blend_file.sdna->types_num; i++) {
+        const char* type = blend_file.sdna->types[i];
+        if (blend_file.sdna->types_size[i] == 0) {
+            file << "typedef void " << type << ";\n";
+        }
     }
 
     file << "\n";
@@ -480,7 +493,7 @@ int main() {
 
     std::cout << "\nNumber of types: " << blend_file.sdna->types_num << "\nTypes: \n";
         for (int i = 0; i < blend_file.sdna->types_num; i++) {
-        std::cout << blend_file.sdna->types[i] << "\n";
+        std::cout << blend_file.sdna->types[i] << ", " << blend_file.sdna->types_size[i] <<"\n";
     }
 
     std::cout << "\nNumber of structs: " << blend_file.sdna->structs_num << "\nTypes: \n";
