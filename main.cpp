@@ -441,6 +441,7 @@ void ExtractSDNATypesToHeaderFile(const BlendFile& blend_file) {
             file << "typedef void " << type << ";\n";
         }
     }
+    file << "typedef unsigned short ushort;\n";
 
     file << "\n";
 
