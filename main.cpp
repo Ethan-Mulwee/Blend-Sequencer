@@ -5,6 +5,8 @@
 #include <exception>
 #include <cstdint>
 
+#include "sdna_structs.h"
+
 /* See BlendFileReader.py */
 
 /* -------------------------------------------------------------------------- */
@@ -466,80 +468,98 @@ int main() {
     BlendFile blend_file = ReadBlendFile("Cube.blend");
     // ExtractSDNATypesToHeaderFile(blend_file);
 
-    std::cout << "header: " << blend_file.header << "\n";
-    std::cout << "length: " << blend_file.header_length << "\n";
-    std::cout << "format version: " << blend_file.format_version << "\n";
-    std::cout << "blender version: " << blend_file.blender_version << "\n";
+    // std::cout << "header: " << blend_file.header << "\n";
+    // std::cout << "length: " << blend_file.header_length << "\n";
+    // std::cout << "format version: " << blend_file.format_version << "\n";
+    // std::cout << "blender version: " << blend_file.blender_version << "\n";
 
+    // BlockHeaderNode* node = blend_file.block_header_list.first;
+    // while(node) {
+    //     const BlockHeader& block_header = node->block_header;
+    //     std::cout << "\nblock\n";
+
+    //     char code_cstr[sizeof(uint32_t)+ 1];
+    //     code_cstr[sizeof(uint32_t)] = '\0';
+    //     Int32ToChar(code_cstr, block_header.code);
+    //     std::cout << "code:" << code_cstr << "\n";
+
+    //     std::cout << "SDNA struct type: " << block_header.SDNAnr << "\n";
+    //     std::cout << "old pointer: " << block_header.old_pointer << "\n";
+    //     std::cout << "byte length: " << block_header.len << "\n";
+    //     std::cout << "number of structs: " << block_header.nr << "\n";
+
+    //     node = node->next;
+    // }
+
+    // // std::cout.write(blendFile.file_SDNA->data, blendFile.file_SDNA->data_size);
+
+    // std::cout << "\nNumber of members: " << blend_file.sdna->members_num << "\nMembers: \n";
+    // for (int i = 0; i < blend_file.sdna->members_num; i++) {
+    //     std::cout << blend_file.sdna->members[i] << ", Array length: " << blend_file.sdna->members_array_num[i] << "\n";
+    // }
+
+    // std::cout << "\nNumber of types: " << blend_file.sdna->types_num << "\nTypes: \n";
+    //     for (int i = 0; i < blend_file.sdna->types_num; i++) {
+    //     std::cout << blend_file.sdna->types[i] << ", " << blend_file.sdna->types_size[i] <<"\n";
+    // }
+
+    // std::cout << "\nNumber of structs: " << blend_file.sdna->structs_num << "\nTypes: \n";
+    //     for (int i = 0; i < blend_file.sdna->structs_num; i++) {
+    //         SDNA_Struct* struct_pointer = blend_file.sdna->structs[i];
+    //         std::cout << "Members num:" << struct_pointer->members_num << "\n";
+    //         std::cout << "Members: \n";
+    //         for (int member_index = 0; member_index < struct_pointer->members_num; member_index++) {
+    //             SDNA_StructMember member = struct_pointer->members[member_index];
+    //             std::cout << "" << blend_file.sdna->types[member.type_index] << " ";
+    //             std::cout << "" << blend_file.sdna->members[member.member_index] << ";\n";
+    //         }
+    //         std::cout << "Type index:" << struct_pointer->type_index << "\n";
+    //         std::cout << "True index:" << i << "\n";
+    //         std::cout << "Type name:" << blend_file.sdna->types[struct_pointer->type_index] << "\n";
+    //         // std::cout << "Type name2:" << blend_file.sdna->types[i] << "\n";
+    //         std::cout << "\n\n";
+    //     }
+
+    // std::fstream decoded_block_output("blocks.txt", std::ios::out);
+    // node = blend_file.block_header_list.first;
+    // while(node) {
+    //     const BlockHeader& block_header = node->block_header;
+    //     decoded_block_output << "\nblock\n";
+
+    //     char code_cstr[sizeof(uint32_t)+ 1];
+    //     code_cstr[sizeof(uint32_t)] = '\0';
+    //     Int32ToChar(code_cstr, block_header.code);
+    //     decoded_block_output << "code:" << code_cstr << "\n";
+
+    //     decoded_block_output << "SDNA struct type: " << block_header.SDNAnr << "\n";
+    //     SDNA_Struct* struct_info = blend_file.sdna->structs[block_header.SDNAnr];
+    //     // decoded_block_output << "SDNA struct type name: " << blend_file.sdna->types[block_header.SDNAnr] << "\n";
+    //     decoded_block_output << "Members num: " << struct_info->members_num << "\n";
+    //     decoded_block_output << "Struct type name: " << blend_file.sdna->types[struct_info->type_index] << "\n";
+    //     decoded_block_output << "old pointer: " << block_header.old_pointer << "\n";
+    //     decoded_block_output << "byte length: " << block_header.len << "\n";
+    //     decoded_block_output << "number of structs: " << block_header.nr << "\n";
+
+    //     node = node->next;
+    // }
+
+    // decoded_block_output.close();
+
+    /* Attempt to read mesh data */
     BlockHeaderNode* node = blend_file.block_header_list.first;
     while(node) {
         const BlockHeader& block_header = node->block_header;
-        std::cout << "\nblock\n";
+        SDNA_Struct* struct_info = blend_file.sdna->structs[block_header.SDNAnr];
+        const char* type_name = blend_file.sdna->types[struct_info->type_index];
+        if (strcmp(type_name, "Mesh") == 0) {
+            std::ifstream file("Cube.blend", std::ios::in | std::ios::binary);
+            file.seekg(node->file_offset);
 
-        char code_cstr[sizeof(uint32_t)+ 1];
-        code_cstr[sizeof(uint32_t)] = '\0';
-        Int32ToChar(code_cstr, block_header.code);
-        std::cout << "code:" << code_cstr << "\n";
-
-        std::cout << "SDNA struct type: " << block_header.SDNAnr << "\n";
-        std::cout << "old pointer: " << block_header.old_pointer << "\n";
-        std::cout << "byte length: " << block_header.len << "\n";
-        std::cout << "number of structs: " << block_header.nr << "\n";
-
-        node = node->next;
-    }
-
-    // std::cout.write(blendFile.file_SDNA->data, blendFile.file_SDNA->data_size);
-
-    std::cout << "\nNumber of members: " << blend_file.sdna->members_num << "\nMembers: \n";
-    for (int i = 0; i < blend_file.sdna->members_num; i++) {
-        std::cout << blend_file.sdna->members[i] << ", Array length: " << blend_file.sdna->members_array_num[i] << "\n";
-    }
-
-    std::cout << "\nNumber of types: " << blend_file.sdna->types_num << "\nTypes: \n";
-        for (int i = 0; i < blend_file.sdna->types_num; i++) {
-        std::cout << blend_file.sdna->types[i] << ", " << blend_file.sdna->types_size[i] <<"\n";
-    }
-
-    std::cout << "\nNumber of structs: " << blend_file.sdna->structs_num << "\nTypes: \n";
-        for (int i = 0; i < blend_file.sdna->structs_num; i++) {
-            SDNA_Struct* struct_pointer = blend_file.sdna->structs[i];
-            std::cout << "Members num:" << struct_pointer->members_num << "\n";
-            std::cout << "Members: \n";
-            for (int member_index = 0; member_index < struct_pointer->members_num; member_index++) {
-                SDNA_StructMember member = struct_pointer->members[member_index];
-                std::cout << "" << blend_file.sdna->types[member.type_index] << " ";
-                std::cout << "" << blend_file.sdna->members[member.member_index] << ";\n";
-            }
-            std::cout << "Type index:" << struct_pointer->type_index << "\n";
-            std::cout << "True index:" << i << "\n";
-            std::cout << "Type name:" << blend_file.sdna->types[struct_pointer->type_index] << "\n";
-            // std::cout << "Type name2:" << blend_file.sdna->types[i] << "\n";
-            std::cout << "\n\n";
+            Mesh mesh; 
+            file.read((char*)&mesh, sizeof(Mesh));
+            std::cout << mesh.id.name << "\n";
         }
 
-    std::fstream decoded_block_output("blocks.txt", std::ios::out);
-    node = blend_file.block_header_list.first;
-    while(node) {
-        const BlockHeader& block_header = node->block_header;
-        decoded_block_output << "\nblock\n";
-
-        char code_cstr[sizeof(uint32_t)+ 1];
-        code_cstr[sizeof(uint32_t)] = '\0';
-        Int32ToChar(code_cstr, block_header.code);
-        decoded_block_output << "code:" << code_cstr << "\n";
-
-        decoded_block_output << "SDNA struct type: " << block_header.SDNAnr << "\n";
-        SDNA_Struct* struct_info = blend_file.sdna->structs[block_header.SDNAnr];
-        // decoded_block_output << "SDNA struct type name: " << blend_file.sdna->types[block_header.SDNAnr] << "\n";
-        decoded_block_output << "Members num: " << struct_info->members_num << "\n";
-        decoded_block_output << "Struct type name: " << blend_file.sdna->types[struct_info->type_index] << "\n";
-        decoded_block_output << "old pointer: " << block_header.old_pointer << "\n";
-        decoded_block_output << "byte length: " << block_header.len << "\n";
-        decoded_block_output << "number of structs: " << block_header.nr << "\n";
-
         node = node->next;
     }
-
-    decoded_block_output.close();
 }
