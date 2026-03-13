@@ -115,6 +115,8 @@ struct SDNA {
 };
 
 struct BlendFile {
+    const char *data;
+
     char* header;
     int header_length;
     int format_version;
@@ -546,18 +548,55 @@ int main() {
     // decoded_block_output.close();
 
     /* Attempt to read mesh data */
+    /* See DNA_mesh_types.h struct Mesh */
+    /*  
+     * DNA_outliner_types.h 133
+     * "Elements to be packed from mempool in `writefile.cc`
+     *  or extracted to mempool in `readfile.cc`."
+     * TreeStoreElem *data = nullptr;
+     *
+     * It seems maybe any data pointed to in these structs is stored in a "mempool" somewhere in the file?
+     * perhaps this could be the first data block with the type raw_data and code TEST.
+     * See writefile.cc and writefile.hh
+     *
+     * "struct WriteDataStableAddressIDs {
+     * Knows which DNA members are pointers. Those members are overridden when serializing the
+     * .blend file to get more stable pointer identifiers.
+     * std::shared_ptr<dna::pointers::PointersInDNA> sdna_pointers;"
+     *
+     * this is what you are looking for ^
+     */
     BlockHeaderNode* node = blend_file.block_header_list.first;
     while(node) {
         const BlockHeader& block_header = node->block_header;
         SDNA_Struct* struct_info = blend_file.sdna->structs[block_header.SDNAnr];
         const char* type_name = blend_file.sdna->types[struct_info->type_index];
-        if (strcmp(type_name, "Mesh") == 0) {
-            std::ifstream file("Cube.blend", std::ios::in | std::ios::binary);
-            file.seekg(node->file_offset);
+        // if (strcmp(type_name, "Mesh") == 0) {
+        //     std::ifstream file("Cube.blend", std::ios::in | std::ios::binary);
+        //     file.seekg(node->file_offset);
 
-            Mesh mesh; 
-            file.read((char*)&mesh, sizeof(Mesh));
-            std::cout << mesh.id.name << "\n";
+        //     Mesh mesh; 
+        //     file.read((char*)&mesh, sizeof(Mesh));
+        //     std::cout << mesh.id.name << "\n";
+        //     std::cout << mesh.totvert << "\n";
+        //     /* Some where in attribute sotrage I think the vertex data is kept */
+        //     std::cout << mesh.attribute_storage.dna_attributes_num << "\n";
+        //     // 
+        //     std::cout << mesh.attribute_storage.dna_attributes << "\n";
+        //     /* TODO: read blendfile into memory so you cna actuall take a look at these pointers */
+        //     // Attribute test = *mesh.attribute_storage.dna_attributes;
+        //     std::cout << sizeof(Mesh) << "\n";
+        // }
+
+        if (block_header.len > 1000) {
+            char code_cstr[sizeof(uint32_t)+ 1];
+            code_cstr[sizeof(uint32_t)] = '\0';
+            Int32ToChar(code_cstr, block_header.code);
+            std::cout << code_cstr << "\n";
+            // std::cout << block_header.code << "\n";
+            std::cout << block_header.len << "\n";
+            std::cout << type_name << "\n";
+            std::cout << "\n";
         }
 
         node = node->next;

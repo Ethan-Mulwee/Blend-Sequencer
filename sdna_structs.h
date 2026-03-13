@@ -6107,6 +6107,7 @@ struct Mesh {
 	AnimData *adt;
 	Key *key;
 	Material **mat;
+	// tot stands for total
 	int totvert;
 	int totedge;
 	int totpoly;
@@ -6140,6 +6141,7 @@ struct Mesh {
 	char *default_uv_map_attribute;
 	char symmetry;
 	char remesh_mode;
+	// length of materials array
 	short totcol;
 	char cd_flag;
 	char subdiv;
