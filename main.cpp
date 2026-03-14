@@ -126,7 +126,8 @@ struct BlendFile {
     BlockHeaderList block_header_list;
 
     /* TODO: replace this with a more efficent structure later */
-    std::map<void*, void*> pointer_to_block_mapping;
+    std::map<void*, void*> pointer_to_data_mapping;
+    std::map<void*, size_t> pointer_to_data_index_mapping;
 
     SDNA *sdna;
 };
@@ -344,6 +345,24 @@ BlendFile ReadBlendFile(const char* path) {
 
     std::ifstream file(path, std::ios::in | std::ios::binary);
 
+    if (!file) {
+        throw std::runtime_error("Failed to open file");
+    }
+
+    /* --------------------------- READ RAW FILE DATA --------------------------- */
+
+    file.seekg(0, std::ios::end);
+    int file_size = file.tellg();
+
+    file.seekg(0, std::ios::beg);
+    
+    char* data = new char[file_size];
+    file.read(data, file_size);
+    result.data = data;
+
+    file.clear();
+    file.seekg(0, std::ios::beg);
+
     /* ------------------------------- READ HEADER ------------------------------ */
     /* hardcoded because this isn't really expected to change */
     int header_length = 17;
@@ -351,10 +370,6 @@ BlendFile ReadBlendFile(const char* path) {
     header[header_length + 1] = '\0';
 
     file.read(header, 17);
-
-    if (!file) {
-        throw std::runtime_error("Failed to open file");
-    }
 
     char format_version_cstr[2] = {header[10], header[11]};
     int format_version = atoi(format_version_cstr);
@@ -372,6 +387,7 @@ BlendFile ReadBlendFile(const char* path) {
 
 
     // based on get_bhead()
+    // int file_size = 0;
     while(true) {
         BlockHeader block_header; 
         file.read((char*)&block_header, sizeof(BlockHeader));
@@ -379,6 +395,8 @@ BlendFile ReadBlendFile(const char* path) {
         if (file.eof()) {
             break;
         }
+
+        // file_size = file_offset;
 
         BlockHeaderNode* block_header_node = new BlockHeaderNode();
         block_header_node->next = nullptr;
@@ -389,6 +407,8 @@ BlendFile ReadBlendFile(const char* path) {
         result.block_header_list.add(block_header_node);
 
         // result.pointer_to_block_mapping.insert(block_header.old_pointer, ...); need to have data read to memory before you can do this
+        result.pointer_to_data_mapping.insert({(void*)block_header.old_pointer, (void*)&(result.data[block_header_node->file_offset])});
+        result.pointer_to_data_index_mapping.insert({(void*)block_header.old_pointer, block_header_node->file_offset});
 
         file.seekg(block_header.len, std::ios::seekdir::_S_cur);
     }
@@ -396,6 +416,8 @@ BlendFile ReadBlendFile(const char* path) {
     file.clear();
 
     result.sdna = ReadSDNA(file, result.block_header_list.last->perv->file_offset, result.block_header_list.last->perv->block_header.len);
+
+    file.close();
 
     return result;
 }
@@ -500,9 +522,24 @@ int main() {
              * Old pointer: 4450082800180973424 Struct type name: Attribute
              */
             std::cout << (uint64_t)mesh.attribute_storage.dna_attributes << "\n";
-            /* TODO: read blendfile into memory so you cna actually take a look at these pointers */
-            // Attribute test = *mesh.attribute_storage.dna_attributes;
-            // std::cout << sizeof(Mesh) << "\n";
+            /* TODO: read blendfile into memory so you can actually take a look at these pointers */
+            Attribute* mapped_pointer = (Attribute*)blend_file.pointer_to_data_mapping[(void*)mesh.attribute_storage.dna_attributes];
+            uint64_t index = blend_file.pointer_to_data_index_mapping[(void*)mesh.attribute_storage.dna_attributes];
+
+
+            // Attribute* mapped_pointer = (Attribute*)&blend_file.data[index];
+            std::cout << (int)blend_file.data[index] << "\n";
+            std::cout << (uint64_t)mapped_pointer << "\n";
+            std::cout << index << "\n";
+            for (int i = 0; i < mesh.attribute_storage.dna_attributes_num; i++) {
+                std::cout << (uint64_t)mapped_pointer[i].name << "\n";
+                char* mapped_name_pointer = (char*)blend_file.pointer_to_data_mapping[(void*)mapped_pointer[i].name];
+                std::cout << mapped_name_pointer << "\n";
+                std::cout << (uint64_t)mapped_pointer[i].data_type << "\n";
+            }
+
+            // CustomDataLayer* mapped_data_layer = (CustomDataLayer*)blend_file.pointer_to_data_mapping[(void*)mesh.vdata.layers];
+            // std::cout << mesh.vdata.totsize << "\n";
         }
 
         node = node->next;
