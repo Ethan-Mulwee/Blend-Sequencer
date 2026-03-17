@@ -559,6 +559,7 @@ int main() {
                 std::cout << "    Data Type: " << attribute_array_data_type << " {\n";
                 std::cout << "        Size: " << attribute_array.size << "\n";
                 
+                // Read raw attribute data bytes
                 DataBlockNode* raw_data_block = blend_file.MapPointerToBlock(attribute_array.data);
                 const char* raw_data_type = blend_file.TypeNameOfDataBlock(raw_data_block);
                 raw_data* data = (raw_data*)blend_file.GetRawDataAddress(raw_data_block->data_offset);
@@ -569,14 +570,31 @@ int main() {
                 std::cout << "        Number of Structs: " << number_structs << "\n";
                 
                 for (int array_idx = 0; array_idx < attribute_array.size; array_idx++) {
-                    if ((AttrType)attribute.data_type == AttrType::Float3) {
-                        float x, y, z;
-                        int data_idx = array_idx * sizeof(float) * 3;
-                        x = *reinterpret_cast<float*>(&data[data_idx]);
-                        y = *reinterpret_cast<float*>(&data[data_idx + sizeof(float)]);
-                        z = *reinterpret_cast<float*>(&data[data_idx + (sizeof(float) * 2)]);
+                    switch ((AttrType)attribute.data_type) {
+                        case AttrType::Float3: {
+                            float x, y, z;
+                            int data_idx = array_idx * sizeof(float) * 3;
+                            x = *reinterpret_cast<float*>(&data[data_idx]);
+                            y = *reinterpret_cast<float*>(&data[data_idx + sizeof(float)]);
+                            z = *reinterpret_cast<float*>(&data[data_idx + (sizeof(float) * 2)]);
+                            
+                            std::cout << "        {" << x << ", " << y << ", " << z << "}\n";
+                            break;
+                        }
                         
-                        std::cout << "        {" << x << ", " << y << ", " << z << "}\n";
+                        case AttrType::Bool: {
+                            bool b;
+                            b = *reinterpret_cast<bool*>(&data[array_idx]);
+
+                            if (b) {
+                                std::cout << "        {true}\n";
+                            } else {
+                                std::cout << "        {false}\n";
+                            }
+                        }
+
+                        default:
+                            break;
                     }
                 }
 
