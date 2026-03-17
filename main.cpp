@@ -7,6 +7,7 @@
 #include <map>
 
 #include "sdna_structs.h"
+#include "attribute_types.h"
 
 /* See BlendFileReader.py */
 
@@ -568,7 +569,7 @@ int main() {
                 std::cout << "        Number of Structs: " << number_structs << "\n";
                 
                 for (int array_idx = 0; array_idx < attribute_array.size; array_idx++) {
-                    if (attribute.data_type == 7) {
+                    if ((AttrType)attribute.data_type == AttrType::Float3) {
                         float x, y, z;
                         int data_idx = array_idx * sizeof(float) * 3;
                         x = *reinterpret_cast<float*>(&data[data_idx]);
