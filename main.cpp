@@ -151,6 +151,18 @@ struct BlendFile {
         DataBlockNode* data_block = pointer_to_block_map[ptr];
         return data_block;
     }
+
+    const char* TypeNameFromStructSDNAIndex(uint32_t SDNAnr) {
+        short data_type_index = sdna->structs[SDNAnr]->type_index;
+        const char* data_type = sdna->types[data_type_index];
+        return data_type;
+    }
+
+        const char* TypeNameOfDataBlock(DataBlockNode* node) {
+        short data_type_index = sdna->structs[node->block_header.SDNAnr]->type_index;
+        const char* data_type = sdna->types[data_type_index];
+        return data_type;
+    }
 };
 
 void Int32ToChar(char a[], int32_t n) {
@@ -523,23 +535,49 @@ int main() {
         if (strcmp(type_name, "Mesh") == 0) {
             Mesh mesh; 
             mesh = ReadDataBlock<Mesh>(blend_file, node, 0);
-            std::cout << mesh.id.name << "\n";
-            std::cout << mesh.totvert << "\n";
-            std::cout << mesh.attribute_storage.dna_attributes_num << "\n";
+            std::cout << "Mesh Name: " << mesh.id.name << "\n";
+            std::cout << "Vertex Count: " << mesh.totvert << "\n";
+            std::cout << "Number of Attributes:" << mesh.attribute_storage.dna_attributes_num << "\n";
  
-            std::cout << (uint64_t)mesh.attribute_storage.dna_attributes << "\n";
-            Attribute* attribute_array = blend_file.MapPointer(mesh.attribute_storage.dna_attributes);
+            Attribute* attributes = blend_file.MapPointer(mesh.attribute_storage.dna_attributes);
 
             std::cout << "Mesh Attributes: \n";
-            for (int i = 0; i < mesh.attribute_storage.dna_attributes_num; i++) {
-                Attribute& attribute = attribute_array[i];
+            for (int attribute_idx = 0; attribute_idx < mesh.attribute_storage.dna_attributes_num; attribute_idx++) {
+                Attribute& attribute = attributes[attribute_idx];
                 std::cout << "    Name: " << blend_file.MapPointer(attribute.name) << "\n";
                 std::cout << "    Type: " << attribute.data_type << "\n";
                 std::cout << "    Domain: " << (int)attribute.domain << "\n";
-                DataBlockNode* data = blend_file.MapPointerToBlock(attribute.data);
-                short data_type_index = blend_file.sdna->structs[data->block_header.SDNAnr]->type_index;
-                const char* data_type = blend_file.sdna->types[data_type_index];
-                std::cout << "    Data type: " << data_type << "\n";
+
+                DataBlockNode* attribute_array_data = blend_file.MapPointerToBlock(attribute.data);
+                const char* attribute_array_data_type = blend_file.TypeNameOfDataBlock(attribute_array_data);
+                AttributeArray attribute_array = ReadDataBlock<AttributeArray>(blend_file, attribute_array_data, 0);
+
+                std::cout << "    Data Type: " << attribute_array_data_type << " {\n";
+                std::cout << "        Size: " << attribute_array.size << "\n";
+                
+                DataBlockNode* raw_data_block = blend_file.MapPointerToBlock(attribute_array.data);
+                const char* raw_data_type = blend_file.TypeNameOfDataBlock(raw_data_block);
+                raw_data* data = (raw_data*)blend_file.GetRawDataAddress(raw_data_block->data_offset);
+                uint32_t byte_length = raw_data_block->block_header.len;
+                uint32_t number_structs = raw_data_block->block_header.nr;
+                std::cout << "        Data Type: " << raw_data_type << "\n";
+                std::cout << "        Byte Length: " << byte_length << "\n";
+                std::cout << "        Number of Structs: " << number_structs << "\n";
+                
+                for (int array_idx = 0; array_idx < attribute_array.size; array_idx++) {
+                    if (attribute.data_type == 7) {
+                        float x, y, z;
+                        int data_idx = array_idx * sizeof(float) * 3;
+                        x = *reinterpret_cast<float*>(&data[data_idx]);
+                        y = *reinterpret_cast<float*>(&data[data_idx + sizeof(float)]);
+                        z = *reinterpret_cast<float*>(&data[data_idx + (sizeof(float) * 2)]);
+                        
+                        std::cout << "        {" << x << ", " << y << ", " << z << "}\n";
+                    }
+                }
+
+
+                std::cout << "    }\n";
             }
         }
 
