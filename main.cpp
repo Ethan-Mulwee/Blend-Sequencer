@@ -581,6 +581,25 @@ int main() {
                             std::cout << "        {" << x << ", " << y << ", " << z << "}\n";
                             break;
                         }
+
+                        case AttrType::Int32_2D: {
+                            int32_t a, b;
+                            int data_idx = array_idx * sizeof(int32_t) * 2;
+                            a = *reinterpret_cast<int32_t*>(&data[data_idx]);
+                            b = *reinterpret_cast<int32_t*>(&data[data_idx + sizeof(int32_t)]);
+
+                            std::cout << "        {" << a << ", " << b << "}\n";
+                            break;
+                        }
+
+                        case AttrType::Int32: {
+                            int32_t i;
+                            int data_idx = array_idx * sizeof(int32_t);
+                            i = *reinterpret_cast<int32_t*>(&data[data_idx]);
+
+                            std::cout << "        {" << i << "}\n";
+                            break;
+                        }
                         
                         case AttrType::Bool: {
                             bool b;
