@@ -17,17 +17,20 @@
 /* Aka BHead or LargeBHead8 in blender source */
 struct DataBlockHeader {
     int32_t code;
-    int32_t SDNAnr;
+    // SDNAnr
+    int32_t SDNA_type_index;
     uint64_t old_pointer;
-    int64_t len;
-    int64_t nr;
+    // len
+    int64_t byte_length;
+    // nr
+    int64_t struct_number;
 };
 
 /* Aka BHeadN */
 struct DataBlockNode {
     DataBlockNode *next, *perv;
     uint64_t data_offset;
-    bool has_data;
+    // bool has_data;
     DataBlockHeader block_header;
 };
 
@@ -159,7 +162,7 @@ struct BlendFile {
     }
 
         const char* TypeNameOfDataBlock(DataBlockNode* node) {
-        short data_type_index = sdna->structs[node->block_header.SDNAnr]->type_index;
+        short data_type_index = sdna->structs[node->block_header.SDNA_type_index]->type_index;
         const char* data_type = sdna->types[data_type_index];
         return data_type;
     }
@@ -431,7 +434,7 @@ BlendFile ReadBlendFile(const char* path) {
 
         file.pointer_to_block_map.insert({(void*)block_header.old_pointer, block_node});
 
-        data_index += block_header.len;
+        data_index += block_header.byte_length;
     }
 
     file.sdna = ReadSDNA(file, file.block_header_list.last->perv->data_offset);
@@ -502,12 +505,12 @@ void LogDataBlocks(const BlendFile& blend) {
         Int32ToChar(code_cstr, block_header.code);
         std::cout << "code:" << code_cstr << "\n";
 
-        std::cout << "SDNA struct type: " << block_header.SDNAnr << "\n";
+        std::cout << "SDNA struct type: " << block_header.SDNA_type_index << "\n";
         // SDNA_Struct* struct_info = blend.sdna->structs[block_header.SDNAnr];
         // std::cout << "Struct type name: " << blend.sdna->types[struct_info->type_index] << "\n";
         std::cout << "old pointer: " << block_header.old_pointer << "\n";
-        std::cout << "byte length: " << block_header.len << "\n";
-        std::cout << "number of structs: " << block_header.nr << "\n";
+        std::cout << "byte length: " << block_header.byte_length << "\n";
+        std::cout << "number of structs: " << block_header.struct_number << "\n";
         std::cout << "data_index: " << node->data_offset << "\n";
 
         node = node->next;
@@ -530,7 +533,7 @@ int main() {
     DataBlockNode* node = blend_file.block_header_list.first;
     while(node) {
         const DataBlockHeader& block_header = node->block_header;
-        SDNA_Struct* struct_info = blend_file.sdna->structs[block_header.SDNAnr];
+        SDNA_Struct* struct_info = blend_file.sdna->structs[block_header.SDNA_type_index];
         const char* type_name = blend_file.sdna->types[struct_info->type_index];
         if (strcmp(type_name, "Mesh") == 0) {
             Mesh mesh; 
@@ -558,8 +561,8 @@ int main() {
                 DataBlockNode* raw_data_block = blend_file.MapPointerToBlock(attribute_array.data);
                 const char* raw_data_type = blend_file.TypeNameOfDataBlock(raw_data_block);
                 raw_data* data = (raw_data*)blend_file.GetRawDataAddress(raw_data_block->data_offset);
-                uint32_t byte_length = raw_data_block->block_header.len;
-                uint32_t number_structs = raw_data_block->block_header.nr;
+                uint32_t byte_length = raw_data_block->block_header.byte_length;
+                uint32_t number_structs = raw_data_block->block_header.struct_number;
                 std::cout << "        Data Type: " << raw_data_type << "\n";
                 std::cout << "        Byte Length: " << byte_length << "\n";
                 std::cout << "        Number of Structs: " << number_structs << "\n";
