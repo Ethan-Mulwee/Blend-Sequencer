@@ -541,10 +541,31 @@ int main() {
             mesh = ReadDataBlock<Mesh>(blend_file, node, 0);
             std::cout << "Mesh Name: " << mesh.id.name << "\n";
             std::cout << "Vertex Count: " << mesh.totvert << "\n";
+            std::cout << "Edge Count: " << mesh.totedge << "\n";
+            std::cout << "Face Count: " << mesh.totpoly << "\n";
+            std::cout << "Corner Count: " << mesh.totloop << "\n";
             std::cout << "Number of Attributes:" << mesh.attribute_storage.dna_attributes_num << "\n";
  
-            Attribute* attributes = blend_file.MapPointer(mesh.attribute_storage.dna_attributes);
+            DataBlockNode* poly_offset_indices_data_block = blend_file.MapPointerToBlock(mesh.poly_offset_indices);
+            std::cout << "face_offset_indices Type: " << blend_file.TypeNameOfDataBlock(poly_offset_indices_data_block) << "\n";
+            std::cout << "face_offset_indices Byte Length: " << poly_offset_indices_data_block->block_header.byte_length << "\n";
+            int* poly_offset_indices = (int*)blend_file.GetRawDataAddress(poly_offset_indices_data_block->data_offset);
+            /* See DNA_mesh_types.h faces() */
 
+            /* From the developer docs https://developer.blender.org/docs/features/objects/mesh/mesh/ 
+            OffsetIndices is a general abstraction for splitting a larger array into many contiguous groups. 
+            Every group is represented by a single integer-- the first index of the elements in the group. 
+            The end of the group is simply the next integer in the offsets array. For example, the face offsets 
+            [0,3,7,10,14] encode a triangle, a quad, a triangle, and a quad, in that order. */
+            /* i.e 7 numbers encode 6 faces explaining the + 1 */
+            std::cout << "{";
+            for (int poly_offset_indice_idx = 0; poly_offset_indice_idx < mesh.totpoly + 1; poly_offset_indice_idx++) {
+                std::cout << poly_offset_indices[poly_offset_indice_idx] << ", ";
+            }
+            std::cout << "}\n";
+
+            Attribute* attributes = blend_file.MapPointer(mesh.attribute_storage.dna_attributes);
+            
             std::cout << "Mesh Attributes: \n";
             for (int attribute_idx = 0; attribute_idx < mesh.attribute_storage.dna_attributes_num; attribute_idx++) {
                 Attribute& attribute = attributes[attribute_idx];
