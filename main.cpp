@@ -499,6 +499,12 @@ void InterpretDataBlocks(const BlendFile& blend) {
     while(node) {
         // switch on type index
         switch (node->block_header.SDNA_type_index) {
+
+            case 321: { // Mesh
+                std::cout << "Found a mesh \n";
+                break;
+            }
+
             default:
                 uncovered_cases++;
                 break;
@@ -563,6 +569,7 @@ int main() {
         if (strcmp(type_name, "Mesh") == 0) {
             Mesh mesh; 
             mesh = ReadDataBlock<Mesh>(blend_file, node, 0);
+            std::cout << "SDNA index: " << node->block_header.SDNA_type_index << "\n";
             std::cout << "Mesh Name: " << mesh.id.name << "\n";
             std::cout << "Vertex Count: " << mesh.totvert << "\n";
             std::cout << "Edge Count: " << mesh.totedge << "\n";
